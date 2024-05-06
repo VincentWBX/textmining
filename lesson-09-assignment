@@ -1,0 +1,42 @@
+import re
+import jieba
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+def chinese_tokenizer(text):
+    # Regex for matching Chinese characters
+    pattern = re.compile(r'[\u4e00-\u9fff]+')
+    # Use jieba to tokenize the text and filter with regex to include only Chinese characters
+    tokens = jieba.cut(text)
+    return [token for token in tokens if pattern.match(token)]
+
+# Your Chinese text file path
+file_path = "199801.txt"
+
+def extract_chinese_keywords(file_path, top_n=5):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        lines = [next(file) for _ in range(16)]
+        
+    # Segmenting and filtering non-Chinese characters
+    text = [' '.join(chinese_tokenizer(line)) for line in lines]
+
+    # Initializing the TF-IDF vectorizer with the custom tokenizer
+    vectorizer = TfidfVectorizer()
+
+    # Generating the TF-IDF matrix
+    tfidf_matrix = vectorizer.fit_transform(text)
+
+    # Getting feature names (words)
+    feature_names = vectorizer.get_feature_names_out()
+
+    # Extracting scores and pairing them with words
+    scores_words = zip(tfidf_matrix.toarray().sum(axis=0), feature_names)
+
+    # Sorting words by their scores
+    sorted_words = sorted(scores_words, reverse=True, key=lambda x: x[0])
+
+    # Selecting the top 'top_n' keywords
+    top_keywords = [word for _, word in sorted_words[:top_n]]
+
+    return top_keywords
+
+print(extract_chinese_keywords(file_path))
